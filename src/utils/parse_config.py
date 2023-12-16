@@ -14,7 +14,7 @@ from src.utils import write_yaml, ROOT_PATH
 
 @hydra.main(config_path=(ROOT_PATH / 'configs'), config_name="config.yaml")
 class ConfigParser:
-    def __init__(self, config: DictConfig, resume=None, finetune=None, modification=None, run_id=None)
+    def __init__(self, config: DictConfig, resume=None, finetune=None, modification=None, run_id=None):
         """
         class to parse configuration yaml file. Handles hyperparameters for training,
         initializations of modules, checkpoint saving and logging module.
@@ -92,7 +92,7 @@ class ConfigParser:
         module_args.update(kwargs)
         return partial(getattr(module, module_name), *args, **module_args)
 
-     def get_logger(self, name, verbosity=2):
+    def get_logger(self, name, verbosity=2):
         msg_verbosity = "verbosity option {} is invalid. Valid options are {}.".format(
             verbosity, self.log_levels.keys()
         )

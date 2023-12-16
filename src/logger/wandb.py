@@ -59,6 +59,9 @@ class WanDBWriter:
         return self.wandb.Image(image)
     
     def create_audio_entry(self, audio, sample_rate=None):
+        if sample_rate is None:
+            sample_rate = 16000
+
         audio = audio.detach().cpu().numpy().T
         return self.wandb.Audio(audio, sample_rate=sample_rate)
     

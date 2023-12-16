@@ -1,0 +1,65 @@
+name: LCNN_test
+n_gpu: 1
+
+arch:
+  type: LCNN
+  args:
+    n_frames: 257
+    time: 750
+    dropout: 0.1
+
+data:
+  train:
+    batch_size: 10
+    num_workers: 4
+    datasets:
+      - type: AVSDataset
+        args:
+          limit: 10
+          split: train
+  
+  eval:
+    batch_size: 10
+    num_workers: 4
+    datasets:
+      - type: AVSDataset
+        args:
+          limit: 10
+          split: train
+      - type: InferenceDataset
+        args:
+          path_to_audios: test_audios
+
+loss:
+  type: CrossEntropyLoss
+
+train_metrics:
+  type: ScoresExtractor
+  args:
+    name: "eer"
+
+valid_metrics:
+  type: ScoresExtractor
+  args:
+    name: "eer"
+
+optimizer:
+  type: Adam
+  args:
+    betas: [0.9, 0.999]
+    lr: 0.0003
+
+lr_scheduler:
+  type: ExponentialLR
+  gamma: 0.5
+
+trainer:
+  save_dir: saved
+  save_period: 5
+  verbosity: 2
+  monitor: "min eval_eer"
+  early_stop: 100
+  visualize: wandb
+  wandb_project: voice-anti-spoofing
+  wandb_run_name: LCNN_test
+  grad_norm_clip: 10
