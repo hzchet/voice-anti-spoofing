@@ -37,10 +37,11 @@ class SincConv_fast(nn.Module):
         return 700 * (10 ** (mel / 2595) - 1)
 
     def __init__(self, out_channels, kernel_size, sample_rate=16000, in_channels=1,
-                 stride=1, padding=0, dilation=1, min_low_hz=50, min_band_hz=50):
+                 stride=1, padding=0, dilation=1, min_low_hz=50, min_band_hz=50, frontend='s1'):
 
         super().__init__()
 
+        assert frontend in ('s1', 's2', 's3')
         if in_channels != 1:
             msg = "SincConv only support one input channel (here, in_channels = {%i})" % (in_channels)
             raise ValueError(msg)
@@ -63,10 +64,15 @@ class SincConv_fast(nn.Module):
         low_hz = 0
         high_hz = self.sample_rate / 2 - (self.min_low_hz + self.min_band_hz)
 
-        mel = np.linspace(self.to_mel(low_hz),
-                          self.to_mel(high_hz),
-                          self.out_channels + 1)
-        hz = self.to_hz(mel)
+        if frontend == 's1':
+            mel = np.linspace(self.to_mel(low_hz),
+                            self.to_mel(high_hz),
+                            self.out_channels + 1)
+            hz = self.to_hz(mel)
+        elif frontend == 's3':
+            hz = np.linspace(low_hz, high_hz, self.out_channels + 1)
+        else:
+            raise NotImplementedError()
         
         self.low_hz_ = nn.Parameter(torch.Tensor(hz[:-1]).view(-1, 1)) # learnable f1 from the paper
         self.band_hz_ = nn.Parameter(torch.Tensor(np.diff(hz)).view(-1, 1)) # learnable f2 (f2 = f1 + diff) from the paper
@@ -126,11 +132,12 @@ class SincLayer(nn.Module):
         kernel_size, 
         sample_rate=16000, 
         in_channels=1,
-        stride=1, 
+        stride=1,
         padding=0, 
         dilation=1, 
         min_low_hz=50, 
         min_band_hz=50,
+        frontend='s1',
         is_fixed: bool = False,
         maxpool_kernel_size: int = 3,
         use_abs: bool = False
@@ -145,7 +152,8 @@ class SincLayer(nn.Module):
             padding, 
             dilation, 
             min_low_hz, 
-            min_band_hz
+            min_band_hz,
+            frontend=frontend
         )
         if is_fixed:
             for param in self.sinc_conv.parameters():

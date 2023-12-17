@@ -1,4 +1,4 @@
-name: RawNet2_wo_abs
+name: RawNet2_s3
 n_gpu: 1
 
 arch:
@@ -10,6 +10,7 @@ arch:
       kernel_size: 1024
       min_low_hz: 0
       min_band_hz: 0
+      frontend: s3
       is_fixed: True
       maxpool_kernel_size: 3
       use_abs: False
@@ -36,7 +37,7 @@ data:
       - type: AVSDataset
         args:
           split: train
-          frontend: s1
+          frontend: s3
   
   dev:
     batch_size: 32
@@ -46,7 +47,7 @@ data:
       - type: AVSDataset
         args:
           split: dev
-          frontend: s1
+          frontend: s3
 
   eval:
     batch_size: 32
@@ -56,7 +57,7 @@ data:
       - type: AVSDataset
         args:
           split: eval
-          frontend: s1
+          frontend: s3
 
   test:
     batch_size: 5
@@ -64,7 +65,7 @@ data:
       - type: InferenceDataset
         args:
           path_to_audios: test_audios
-          frontend: s1
+          frontend: s3
 
 loss:
   type: CrossEntropyLoss
@@ -103,5 +104,5 @@ trainer:
   early_stop: 100
   visualize: wandb
   wandb_project: voice-anti-spoofing
-  wandb_run_name: RawNet2_wo_abs
+  wandb_run_name: RawNet2_s3
   grad_norm_clip: 10
