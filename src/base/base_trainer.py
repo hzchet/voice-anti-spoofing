@@ -2,6 +2,7 @@ from abc import abstractmethod
 
 import torch
 from numpy import inf
+from omegaconf import OmegaConf
 
 from src.base.base_model import BaseModel
 from src.logger import get_visualizer
@@ -149,7 +150,7 @@ class BaseTrainer:
             "optimizer": self.optimizer.state_dict(),
             "lr_scheduler": self.lr_scheduler.state_dict(),
             "monitor_best": self.mnt_best,
-            "config": self.config,
+            "config": OmegaConf.to_container(self.config.config),
         }
         filename = str(self.checkpoint_dir / "checkpoint-epoch{}.pth".format(epoch))
         if not (only_best and save_best):

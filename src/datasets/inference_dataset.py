@@ -4,10 +4,11 @@ from typing import List
 import torchaudio
 
 from src.base.base_dataset import BaseDataset
-
+from src.utils import ROOT_PATH
 
 class InferenceDataset(BaseDataset):
     def __init__(self, path_to_audios: str, *args, **kwargs):
+        path_to_audios = str(ROOT_PATH / path_to_audios)
         assert os.path.exists(path_to_audios)
         index = self._get_index(path_to_audios)
         super().__init__(index, *args, **kwargs)

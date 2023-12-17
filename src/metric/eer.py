@@ -11,7 +11,7 @@ class ScoresExtractor(BaseMetric):
         super().__init__(*args, **kwargs)
 
     def __call__(self, logits, label, **batch):
-        return logits[:, 0], label
+        return logits[:, 0].detach().cpu().numpy(), label.detach().cpu().numpy()
 
 
 def calculate_tDCF_EER(cm_scores_file,

@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 import wandb
+from omegaconf import OmegaConf
 
 
 class WanDBWriter:
@@ -16,11 +17,11 @@ class WanDBWriter:
 
             if config['trainer'].get('wandb_project') is None:
                 raise ValueError("please specify project name for wandb")
-
+            
             wandb.init(
                 project=config['trainer'].get('wandb_project'),
                 name=config['trainer'].get('wandb_run_name'),
-                config=config.config
+                config=OmegaConf.to_container(config.config)
             )
             self.wandb = wandb
 

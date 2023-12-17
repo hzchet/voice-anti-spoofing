@@ -23,18 +23,28 @@ def collate_fn(dataset_items: List[dict]):
     speaker_id = [item['speaker_id'] for item in dataset_items]
     
     wav = [item['wav'] for item in dataset_items]
-    spectrograms = [item['spectrogram'].squeeze(0) for item in dataset_items]
-    spectrograms_batch = pad_sequence(spectrograms)
+    if "spectrogram" in dataset_items[0]:
+        spectrograms = [item['spectrogram'].squeeze(0) for item in dataset_items]
+        spectrograms_batch = pad_sequence(spectrograms)
 
-    if spectrograms_batch.shape[-1] >= 750:
-        spectrograms_batch = spectrograms_batch[:, :, :, :750]
+        if spectrograms_batch.shape[-1] >= 750:
+            spectrograms_batch = spectrograms_batch[:, :, :, :750]
+        else:
+            spectrograms_batch = F.pad(spectrograms_batch, (0, 750 - spectrograms_batch.shape[-1]), mode='constant', value=0)
+        
+        return {
+            'spectrogram': spectrograms_batch,
+            'wav': wav,
+            'label': label.long(),
+            'attack_type': attack_type,
+            'speaker_id': speaker_id
+        }
     else:
-        spectrograms_batch = F.pad(spectrograms_batch, (0, 750 - spectrograms_batch.shape[-1]), mode='constant', value=0)
-    
-    return {
-        'spectrogram': spectrograms_batch,
-        'wav': wav,
-        'label': label.long(),
-        'attack_type': attack_type,
-        'speaker_id': speaker_id
-    }
+        wav = [F.pad(sample, (0, 64000 - sample.shape[-1]), mode='constant') for sample in wav]
+        
+        return {
+            'wav': wav,
+            'label': label.long(),
+            'attack_type': attack_type,
+            'speaker_id': speaker_id
+        }

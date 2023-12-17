@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from src.base import BaseTrainer
 from src.logger.utils import plot_spectrogram_to_buf
-from src.utils import MetricTracker
+from src.metric.tracker import MetricTracker
 
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class Trainer(BaseTrainer):
             lr_scheduler=None,
             skip_oom=True,
     ):
-        super().__init__(model, criterion, optimizer, config, device)
+        super().__init__(model, criterion, train_metrics, valid_metrics, optimizer, config, device)
         self.skip_oom = skip_oom
         self.config = config
         self.train_dataloader = dataloaders["train"]
@@ -47,7 +47,7 @@ class Trainer(BaseTrainer):
         self.lr_scheduler = lr_scheduler
         self.log_step = log_step
         if self.log_step is None:
-            self.log_step = len(self.train_dataloader) - 1
+            self.log_step = len(self.train_dataloader)
 
         self.train_metrics_tracker = MetricTracker(
             "loss", "grad norm", *[m.name for m in self.train_metrics], writer=self.writer
@@ -57,13 +57,18 @@ class Trainer(BaseTrainer):
         )
         
         self.step_every_n_epochs = self.config["trainer"].get("step_every_n_epochs", 10)
-
+        
+        if self.train_dataloader.dataset.frontend in ('s1', 's2', 's3'):
+            self.gpu_keys = ['wav', 'label']
+        else:
+            self.gpu_keys = ['spectrogram', 'label']
+    
     @staticmethod
-    def move_batch_to_device(batch, device: torch.device):
+    def move_batch_to_device(batch, keys, device: torch.device):
         """
         Move all necessary tensors to the HPU
         """
-        for tensor_for_gpu in ["spectrogram"]:
+        for tensor_for_gpu in keys:
             batch[tensor_for_gpu] = batch[tensor_for_gpu].to(device)
         return batch
 
@@ -105,7 +110,7 @@ class Trainer(BaseTrainer):
                 else:
                     raise e
             self.train_metrics_tracker.update("grad norm", self.get_grad_norm())
-            if batch_idx != 0 and batch_idx % self.log_step == 0:
+            if (batch_idx + 1) % self.log_step == 0:
                 self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
                 self.logger.debug(
                     "Train Epoch: {} {} Loss: {:.6f}".format(
@@ -125,20 +130,20 @@ class Trainer(BaseTrainer):
                 break
 
         log = last_train_metrics
-        if epoch != 0 and (epoch - 1) % self.step_every_n_epochs == 0:
+        if (epoch + 1) % self.step_every_n_epochs == 0:
             self.lr_scheduler.step()
         
         for part, dataloader in self.evaluation_dataloaders.items():
             val_log = self._evaluation_epoch(epoch, part, dataloader)
-            log.update(**{f"{part}_{name}": value for name, value in val_log.items()})
-
+            if val_log is not None:
+                log.update(**{f"{part}_{name}": value for name, value in val_log.items()})
         return log
 
     def process_batch(self, batch, is_train: bool, metrics: MetricTracker, batch_idx: int, part=None):
         if part == 'test':
             return self.inference(batch)
 
-        batch = self.move_batch_to_device(batch, self.device)
+        batch = self.move_batch_to_device(batch, self.gpu_keys, self.device)
         if is_train:
             self.optimizer.zero_grad()
         outputs = self.model(**batch)
@@ -163,8 +168,8 @@ class Trainer(BaseTrainer):
         return batch
 
     def inference(self, batch):
-        batch = self.move_batch_to_device(batch, self.device)
-        outputs = self.model(**batch)
+        batch = self.move_batch_to_device(batch, self.gpu_keys, self.device)
+        outputs = self.model(**batch, is_inference=True)
         if type(outputs) is dict:
             batch.update(outputs)
         else:
@@ -203,7 +208,8 @@ class Trainer(BaseTrainer):
         # add histogram of model parameters to the tensorboard
         for name, p in self.model.named_parameters():
             self.writer.add_histogram(name, p, bins="auto")
-        return self.evaluation_metrics_tracker.result()
+        if part != 'test':
+            return self.evaluation_metrics_tracker.result()
 
     def _progress(self, batch_idx):
         base = "[{}/{} ({:.0f}%)]"
@@ -232,7 +238,7 @@ class Trainer(BaseTrainer):
         rows = []
         for i in random_indices:
             i_label = int(label[i])
-            i_bonafide_score = logits[i, 0]
+            i_bonafide_score = F.softmax(logits[i, :])[0]
             i_speaker_id = speaker_id[i]
             i_attack = attack_type[i]
             i_wav = wav[i]
@@ -243,12 +249,13 @@ class Trainer(BaseTrainer):
                 i_label = 'bonafide'
             else:
                 i_label = 'unkown'
+
             rows.append({
                 "speaker_id": i_speaker_id,
                 "attack_type": i_attack,
                 "label": i_label,
                 "audio": self.writer.create_audio_entry(i_wav),
-                "pred_bon_score": float(i_bonafide_score)
+                "bonafide_score": float(i_bonafide_score)
             })
         
         df = pd.DataFrame(rows)

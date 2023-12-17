@@ -8,4 +8,4 @@ RUN apt install unzip -y
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
-ENV WANDB_API_KEY=<YOUR_WANDB_API_KEY>
+ENV WANDB_API_KEY=

@@ -1,47 +1,64 @@
-name: LCNN_test
+name: LCNN_lfcc
 n_gpu: 1
 
 arch:
   type: LCNN
   args:
-    n_frames: 257
+    n_frames: 60
     time: 750
-    dropout: 0.1
+    dropout: 0.0
+    use_angular_margin: False
 
 data:
   train:
-    batch_size: 10
+    batch_size: 64
     num_workers: 4
     datasets:
       - type: AVSDataset
         args:
-          limit: 10
           split: train
+          frontend: lfcc
   
-  eval:
-    batch_size: 10
+  dev:
+    batch_size: 64
     num_workers: 4
     datasets:
       - type: AVSDataset
         args:
-          limit: 10
-          split: train
+          split: dev
+          frontend: lfcc
+
+  eval:
+    batch_size: 64
+    num_workers: 4
+    datasets:
+      - type: AVSDataset
+        args:
+          split: eval
+          frontend: lfcc
+
+  test:
+    batch_size: 5
+    datasets:
       - type: InferenceDataset
         args:
           path_to_audios: test_audios
+          frontend: lfcc
 
 loss:
   type: CrossEntropyLoss
+  args:
+    weight: [9.0, 1.0]
 
 train_metrics:
-  type: ScoresExtractor
-  args:
-    name: "eer"
+  - type: ScoresExtractor
+    args:
+      name: "eer"
 
 valid_metrics:
-  type: ScoresExtractor
-  args:
-    name: "eer"
+  - type: ScoresExtractor
+    args:
+        name: "eer"
 
 optimizer:
   type: Adam
@@ -51,15 +68,18 @@ optimizer:
 
 lr_scheduler:
   type: ExponentialLR
-  gamma: 0.5
+  args:
+    gamma: 0.5
 
 trainer:
+  type: Trainer
   save_dir: saved
+  epochs: 20
   save_period: 5
   verbosity: 2
   monitor: "min eval_eer"
   early_stop: 100
   visualize: wandb
   wandb_project: voice-anti-spoofing
-  wandb_run_name: LCNN_test
+  wandb_run_name: LCNN_LFCC
   grad_norm_clip: 10

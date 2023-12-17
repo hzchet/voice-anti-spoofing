@@ -1,5 +1,5 @@
-NAME?=spoof
-GPUS?=1
+NAME?=dropout
+GPUS?=0
 DATA_DIR?=/hdd/aidar/as_data_dir
 NOTEBOOKS?=/hdd/aidar/notebooks/anti-spoofing
 SAVE_DIR?=/hdd/aidar/as_save_dir

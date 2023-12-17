@@ -12,7 +12,7 @@ from src.logger import setup_logging
 from src.utils import write_yaml, ROOT_PATH
 
 
-@hydra.main(config_path=(ROOT_PATH / 'configs'), config_name="config.yaml")
+@hydra.main(config_path='/workspace/configs', config_name="config.yaml", version_base="1.3")
 class ConfigParser:
     def __init__(self, config: DictConfig, resume=None, finetune=None, modification=None, run_id=None):
         """
@@ -32,7 +32,7 @@ class ConfigParser:
         
         if "trainer" in self.config:
             # set save_dir where trained model and log will be saved.
-            save_dir = Path(self.config["trainer"]["save_dir"])
+            save_dir = ROOT_PATH / self.config["trainer"]["save_dir"]
 
             exper_name = self.config["name"]
             if run_id is None:  # use timestamp as default run-id
@@ -46,7 +46,7 @@ class ConfigParser:
             self.log_dir.mkdir(parents=True, exist_ok=exist_ok)
 
             # save updated config file to the checkpoint dir
-            write_yaml(self.config, self.save_dir / "config.yaml")
+            write_yaml(OmegaConf.to_container(self.config), self.save_dir / "config.yaml")
             # configure logging module            
             setup_logging(self.log_dir)
         else:
@@ -67,6 +67,8 @@ class ConfigParser:
         if hasattr(obj_dict, 'module'):
             default_module = importlib.import_module(obj_dict.module)
 
+        # print(obj_dict)
+        
         module_name = obj_dict.type
         module_args = dict(obj_dict.args)
         assert all(

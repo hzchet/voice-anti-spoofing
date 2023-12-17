@@ -24,7 +24,7 @@ torch.backends.cudnn.benchmark = False
 np.random.seed(SEED)
 
 
-@hydra.main(config_path="configs", config_name="config.yaml")
+@hydra.main(config_path="/workspace/configs", config_name="config.yaml")
 def main(config):
     config = ConfigParser(config)
     logger = config.get_logger("train")
