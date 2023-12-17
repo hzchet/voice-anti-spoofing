@@ -40,7 +40,7 @@ def collate_fn(dataset_items: List[dict]):
             'speaker_id': speaker_id
         }
     else:
-        wav = [F.pad(sample, (0, 64000 - sample.shape[-1]), mode='constant') for sample in wav]
+        wav = torch.stack([F.pad(sample, (0, 64000 - sample.shape[-1]), mode='constant') for sample in wav], dim=0)
         
         return {
             'wav': wav,

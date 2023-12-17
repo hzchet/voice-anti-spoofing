@@ -33,16 +33,24 @@ class ResBlock(nn.Module):
         self.block = nn.Sequential(
             nn.BatchNorm1d(in_channels),
             nn.LeakyReLU(0.3),
-            nn.Conv1d(in_channels, out_channels, kernel_size),
+            nn.Conv1d(in_channels, out_channels, kernel_size, padding='same'),
             nn.BatchNorm1d(out_channels),
             nn.LeakyReLU(0.3),
-            nn.Conv1d(out_channels, out_channels, kernel_size),
+            nn.Conv1d(out_channels, out_channels, kernel_size, padding='same')
+        )
+        if in_channels != out_channels:
+            self.rescaler = nn.Conv1d(in_channels, out_channels, kernel_size=1)
+        else:
+            self.rescaler = nn.Identity()
+        
+        self.out = nn.Sequential(
             nn.MaxPool1d(maxpool_kernel_size),
             FMS(out_channels)
         )
 
     def forward(self, x):
-        return self.block(x)
+        x = self.rescaler(x) + self.block(x)
+        return self.out(x)
 
 
 class RawNet2(BaseModel):
