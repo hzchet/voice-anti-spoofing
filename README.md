@@ -12,7 +12,7 @@ To reproduce trainig of the final model, follow the steps:
 make build && make run
 ```
 
-3. Run the pipeline described in the `configs/hifigan.json` configuration file.
+3. Run the pipeline described in the `configs/rawnet_config.yaml` configuration file.
 ```bash
 python3 train.py --config-name rawnet_config.yaml
 ```
