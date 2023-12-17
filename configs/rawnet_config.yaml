@@ -1,4 +1,4 @@
-name: RawNet2_s3
+name: RawNet2_1layer_gru
 n_gpu: 1
 
 arch:
@@ -10,7 +10,6 @@ arch:
       kernel_size: 1024
       min_low_hz: 0
       min_band_hz: 0
-      frontend: s3
       is_fixed: True
       maxpool_kernel_size: 3
       use_abs: False
@@ -22,9 +21,9 @@ arch:
     gru_kwargs:
       input_size: 128
       hidden_size: 1024
-      num_layers: 3
+      num_layers: 1
       batch_first: True
-    pre_gru_activations: True
+    pre_gru_activations: False
     
     fc_n_features: 1024
 
@@ -37,7 +36,7 @@ data:
       - type: AVSDataset
         args:
           split: train
-          frontend: s3
+          frontend: s1
   
   dev:
     batch_size: 32
@@ -47,7 +46,7 @@ data:
       - type: AVSDataset
         args:
           split: dev
-          frontend: s3
+          frontend: s1
 
   eval:
     batch_size: 32
@@ -57,7 +56,7 @@ data:
       - type: AVSDataset
         args:
           split: eval
-          frontend: s3
+          frontend: s1
 
   test:
     batch_size: 5
@@ -65,7 +64,7 @@ data:
       - type: InferenceDataset
         args:
           path_to_audios: test_audios
-          frontend: s3
+          frontend: s1
 
 loss:
   type: CrossEntropyLoss
@@ -104,5 +103,5 @@ trainer:
   early_stop: 100
   visualize: wandb
   wandb_project: voice-anti-spoofing
-  wandb_run_name: RawNet2_s3
+  wandb_run_name: RawNet2_1layer_gru
   grad_norm_clip: 10
